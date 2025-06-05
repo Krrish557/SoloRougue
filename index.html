@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>SoloRogue</title>
+  <style>
+    body { margin: 0; background: black; overflow: hidden; }
+    #rotateMessage {
+      position: fixed;
+      display: none;
+      width: 100vw;
+      height: 100vh;
+      background: black;
+      color: white;
+      font-size: 2rem;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+  <div id="rotateMessage">Please rotate your device to landscape mode to play SoloRogue.</div>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.js"></script>
+  <script type="module" src="./js/main.js"></script>
+  <script>
+    function checkOrientation() {
+      const isPortrait = window.innerHeight > window.innerWidth;
+      document.getElementById("rotateMessage").style.display = isPortrait ? "flex" : "none";
+    }
+    window.addEventListener("resize", checkOrientation);
+    checkOrientation();
+  </script>
+</body>
+</html>
