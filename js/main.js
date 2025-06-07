@@ -2,13 +2,13 @@ import GameScene from './GameScene.js';
 
 const config = {
   type: Phaser.AUTO,
-  width: 800,
-  height: 600,
+  width: 1536,
+  height: 640,
   backgroundColor: '#000000',
   physics: {
     default: 'arcade',
     arcade: {
-      gravity: { y: 800 },
+      gravity: { y: 1000 },
       debug: false
     }
   },

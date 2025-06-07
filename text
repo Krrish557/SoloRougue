@@ -1,0 +1,149 @@
+export default class GameScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'GameScene' });
+    }
+
+    preload() {
+        this.load.image('background', "../assets/background.png");
+        this.load.image('sonic', "../assets/sonic.png");
+        this.load.image('villain', "../assets/villain.png");
+        this.load.image('bullet', "../assets/bullet.png");
+    }
+
+    create() {
+        this.hp = 100;
+        this.maxHp = 100;
+        this.rp = 0;
+        this.stage = 1;
+        this.kills = 0;
+        this.targetKills = 15;
+        this.lastFired = 0;
+
+        this.add.image(768, 320, 'background');
+
+        this.ground = this.physics.add.staticGroup();
+        this.ground.create(822.5, 550, 'ground').setScale(1).refreshBody().setSize(1155, 20).setOffset(-577.5, -10);
+
+        this.platforms = this.physics.add.staticGroup();
+        this.platforms.add(this.createPlatform(292.5, 410, 215, 40));
+        this.platforms.add(this.createPlatform(1065, 455, 170, 30));
+        this.platforms.add(this.createPlatform(1267.5, 315, 175, 40));
+
+        this.player = this.physics.add.sprite(300, 300, 'sonic');
+        this.player.setScale(0.25); // ✅ Resized player sprite
+        this.player.setCollideWorldBounds(true);
+
+        this.physics.add.collider(this.player, this.ground);
+        this.physics.add.collider(this.player, this.platforms);
+
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.keyZ = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z);
+
+        this.bullets = this.physics.add.group({ classType: Phaser.Physics.Arcade.Image });
+        this.enemies = this.physics.add.group();
+
+        this.time.addEvent({ delay: 2000, callback: this.spawnEnemy, callbackScope: this, loop: true });
+
+        this.physics.add.collider(this.enemies, this.ground);
+        this.physics.add.collider(this.enemies, this.platforms);
+        this.physics.add.collider(this.bullets, this.platforms, (b) => b.destroy());
+
+        this.physics.add.overlap(this.bullets, this.enemies, this.hitEnemy, null, this);
+        this.physics.add.overlap(this.player, this.enemies, this.damagePlayer, null, this);
+
+        this.hudText = this.add.text(10, 10, '', { fontSize: '16px', fill: '#fff' }).setScrollFactor(0);
+        this.killText = this.add.text(10, 30, '', { fontSize: '16px', fill: '#fff' }).setScrollFactor(0);
+    }
+
+    update(time) {
+        this.player.setVelocityX(0);
+        if (this.cursors.left.isDown && this.player.x > 245) {
+            this.player.setVelocityX(-200);
+        } else if (this.cursors.right.isDown && this.player.x < 1400) {
+            this.player.setVelocityX(200);
+        }
+
+        if ((this.cursors.up.isDown || this.cursors.space.isDown) && this.player.body.touching.down) {
+            this.player.setVelocityY(-500);
+        }
+
+        if (this.input.keyboard.checkDown(this.keyZ, 250)) {
+            if (time > this.lastFired) {
+                const bullet = this.bullets.get(this.player.x, this.player.y, 'bullet');
+                if (bullet) {
+                    bullet.setActive(true);
+                    bullet.setVisible(true);
+                    bullet.body.enable = true;
+                    bullet.setScale(0.1); // ✅ Resized bullet sprite
+                    bullet.setVelocityX(400);
+                    bullet.setGravityY(0);
+                }
+                this.lastFired = time + 500;
+            }
+        }
+
+        this.hudText.setText(`HP: ${this.hp}/${this.maxHp}  RP: ${this.rp}  Stage: ${this.stage}`);
+        this.killText.setText(`Enemies Defeated: ${this.kills}/${this.targetKills}`);
+
+        if (this.hp <= 0) {
+            this.scene.pause();
+            this.add.text(600, 300, 'Game Over', { fontSize: '32px', fill: '#f00' });
+        }
+
+        if (this.kills >= this.targetKills) {
+            this.scene.pause();
+            this.showShop();
+        }
+    }
+
+    createPlatform(x, y, width, height) {
+        const platform = this.add.rectangle(x, y, width, height, 0x6666ff);
+        this.physics.add.existing(platform, true);
+        return platform;
+    }
+
+    spawnEnemy() {
+        const side = Phaser.Math.Between(0, 1) ? 260 : 1380;
+        const enemy = this.enemies.create(side, 100, 'villain');
+        enemy.setScale(0.2); // ✅ Resized enemy sprite
+        enemy.setCollideWorldBounds(true);
+        enemy.setVelocityX(side < 700 ? this.stage * 30 : -this.stage * 30);
+        enemy.hp = 20 + this.stage * 5;
+    }
+
+    hitEnemy(bullet, enemy) {
+        bullet.destroy();
+        enemy.hp -= 10;
+        if (enemy.hp <= 0) {
+            enemy.destroy();
+            this.rp += 1;
+            this.kills += 1;
+        }
+    }
+
+    damagePlayer(player, enemy) {
+        this.hp -= 10;
+        const knockback = player.x < enemy.x ? -200 : 200;
+        player.setVelocityX(knockback);
+    }
+
+    showShop() {
+        const shopText = this.add.text(500, 200, 'Shop:\nH - Buy Health Potion (10 RP)\nG - Next Stage', { fontSize: '20px', fill: '#0f0' });
+        const keyH = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.H);
+        const keyG = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.G);
+
+        keyH.once('down', () => {
+            if (this.rp >= 10 && this.hp < this.maxHp) {
+                this.hp = Math.min(this.hp + 30, this.maxHp);
+                this.rp -= 10;
+            }
+        });
+
+        keyG.once('down', () => {
+            this.stage += 1;
+            this.kills = 0;
+            this.targetKills += 5;
+            this.scene.restart();
+        });
+    }
+}
