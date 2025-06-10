@@ -1,0 +1,18 @@
+{
+  "name": "solo-roguelike-project",
+  "version": "1.0.0",
+  "description": "ASCII Roguelike Phaser Game served via Express and Nodemon",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  },
+  "author": "Your Name",
+  "license": "MIT"
+}
